@@ -1637,7 +1637,6 @@ impl<T: PdfiumLibraryBindings> PdfiumLibraryBindings for ThreadSafePdfiumBinding
         self.bindings.FPDFBitmap_GetBuffer(bitmap)
     }
 
-    // TODO: AJRC - 27/11/24 - remove deprecated item as part of #36
     #[inline]
     #[allow(non_snake_case)]
     #[cfg(target_arch = "wasm32")]
@@ -1654,8 +1653,8 @@ impl<T: PdfiumLibraryBindings> PdfiumLibraryBindings for ThreadSafePdfiumBinding
     #[inline]
     #[allow(non_snake_case)]
     #[cfg(target_arch = "wasm32")]
-    fn FPDFBitmap_GetBuffer_as_array(&self, bitmap: FPDF_BITMAP) -> js_sys::Uint8Array {
-        self.bindings.FPDFBitmap_GetBuffer_as_array(bitmap)
+    fn FPDFBitmap_GetArray(&self, bitmap: FPDF_BITMAP) -> js_sys::Uint8Array {
+        self.bindings.FPDFBitmap_GetArray(bitmap)
     }
 
     #[inline]

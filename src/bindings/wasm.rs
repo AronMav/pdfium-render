@@ -622,15 +622,8 @@ impl PdfiumRenderWasmState {
         // two-byte pointer, not the string data itself. We must scan the source memory
         // location for two null bytes to find the correct data length.
 
-        // Many characters, such as standard ASCII characters, can be represented with
-        // a single byte. Since all characters in UTF-16 consume two bytes, ASCII characters
-        // will receive a second byte of padding in UTF-16. This second byte will be a null.
-        // When scanning the FPDF_WIDESTRING for two null bytes, we must be careful not to
-        // misinterpret a null padding byte as part of a string termination sequence.
-        // The easiest way is to iterate over the string in two-byte pairs rather than
-        // byte-by-byte. See: https://github.com/ajrcarey/pdfium-render/issues/171
-
         let mut len = 0;
+        let mut last_byte = None;
 
         log::debug!(
             "pdfium-render::PdfiumRenderWasmState::copy_string_to_pdfium(): FPDF_WIDESTRING is at heap offset {}",
@@ -638,15 +631,18 @@ impl PdfiumRenderWasmState {
         );
 
         loop {
-            let utf16_char = unsafe { Uint8Array::view_mut_raw((str as *mut u8).add(len), 2) };
+            let this_byte =
+                unsafe { Uint8Array::view_mut_raw((str as *mut u8).add(len), 1) }.get_index(0);
 
-            len += 2;
+            len += 1;
 
-            if utf16_char.get_index(0) == 0 && utf16_char.get_index(1) == 0 {
-                // This is the end of the string.
+            if this_byte == 0 && last_byte == Some(0) {
+                // We have found two sequential null bytes. This is the end of the string.
 
                 break;
             }
+
+            last_byte = Some(this_byte);
         }
 
         log::debug!(
@@ -6213,7 +6209,7 @@ impl PdfiumLibraryBindings for WasmPdfiumBindings {
             .unwrap() as FPDF_BOOL
     }
 
-    // TODO: AJRC - 27/11/24 - remove deprecated item as part of #36
+    #[allow(non_snake_case)]
     fn FPDFBitmap_GetBuffer(&self, bitmap: FPDF_BITMAP) -> *const c_void {
         log::debug!("pdfium-render::PdfiumLibraryBindings::FPDFBitmap_GetBuffer()");
 
@@ -6243,11 +6239,14 @@ impl PdfiumLibraryBindings for WasmPdfiumBindings {
     }
 
     #[allow(non_snake_case)]
-    fn FPDFBitmap_GetBuffer_as_array(&self, bitmap: FPDF_BITMAP) -> Uint8Array {
-        log::debug!("pdfium-render::PdfiumLibraryBindings::FPDFBitmap_GetBuffer_as_array()");
+    fn FPDFBitmap_GetArray(&self, bitmap: FPDF_BITMAP) -> Uint8Array {
+        log::debug!("pdfium-render::PdfiumLibraryBindings::FPDFBitmap_GetArray()");
 
-        let buffer_len =
-            (self.FPDFBitmap_GetStride(bitmap) * self.FPDFBitmap_GetHeight(bitmap)) as u32;
+        let width = self.FPDFBitmap_GetWidth(bitmap);
+
+        let height = self.FPDFBitmap_GetHeight(bitmap);
+
+        let buffer_len = (width * height * PdfiumRenderWasmState::BYTES_PER_PIXEL) as u32;
 
         let state = PdfiumRenderWasmState::lock();
 
@@ -6270,8 +6269,6 @@ impl PdfiumLibraryBindings for WasmPdfiumBindings {
 
     #[allow(non_snake_case)]
     fn FPDFBitmap_SetBuffer(&self, bitmap: FPDF_BITMAP, buffer: &[u8]) -> bool {
-        log::debug!("pdfium-render::PdfiumLibraryBindings::FPDFBitmap_SetBuffer()");
-
         let buffer_length =
             (self.FPDFBitmap_GetStride(bitmap) * self.FPDFBitmap_GetHeight(bitmap)) as usize;
 

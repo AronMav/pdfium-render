@@ -132,7 +132,7 @@ impl<'a> PdfBitmap<'a> {
         height: Pixels,
         format: PdfBitmapFormat,
         bindings: &'a dyn PdfiumLibraryBindings,
-    ) -> Result<PdfBitmap<'a>, PdfiumError> {
+    ) -> Result<PdfBitmap, PdfiumError> {
         let handle = bindings.FPDFBitmap_CreateEx(
             width as c_int,
             height as c_int,
@@ -233,7 +233,7 @@ impl<'a> PdfBitmap<'a> {
     )]
     #[doc(hidden)]
     #[inline]
-    pub fn as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> &'a [u8] {
         self.as_raw_bytes()
     }
 
@@ -243,8 +243,13 @@ impl<'a> PdfBitmap<'a> {
     /// To adjust color channels in your own code, use the [PdfiumLibraryBindings::bgr_to_rgba()],
     /// [PdfiumLibraryBindings::bgra_to_rgba()], [PdfiumLibraryBindings::rgb_to_bgra()],
     /// and [PdfiumLibraryBindings::rgba_to_bgra()] functions.
-    pub fn as_raw_bytes(&self) -> Vec<u8> {
-        self.bindings.FPDFBitmap_GetBuffer_as_vec(self.handle)
+    pub fn as_raw_bytes(&self) -> &'a [u8] {
+        let buffer_length = self.bindings.FPDFBitmap_GetStride(self.handle)
+            * self.bindings.FPDFBitmap_GetHeight(self.handle);
+
+        let buffer_start = self.bindings.FPDFBitmap_GetBuffer(self.handle);
+
+        unsafe { std::slice::from_raw_parts(buffer_start as *const u8, buffer_length as usize) }
     }
 
     /// Returns an owned copy of the bitmap buffer backing this [PdfBitmap], normalizing all
@@ -267,19 +272,19 @@ impl<'a> PdfBitmap<'a> {
                 PdfBitmapFormat::BGRA | PdfBitmapFormat::BGRx | PdfBitmapFormat::BRGx => {
                     // No color conversion necessary; data was already swapped from BGRx
                     // to four-channel RGB during rendering.
-                    bytes
+                    bytes.to_vec()
                 }
-                PdfBitmapFormat::BGR => aligned_rgb_to_rgba(bytes.as_slice(), width, stride),
-                PdfBitmapFormat::Gray => bytes,
+                PdfBitmapFormat::BGR => aligned_rgb_to_rgba(bytes, width, stride),
+                PdfBitmapFormat::Gray => bytes.to_vec(),
             }
         } else {
             match format {
                 #[allow(deprecated)]
                 PdfBitmapFormat::BGRA | PdfBitmapFormat::BRGx | PdfBitmapFormat::BGRx => {
-                    bgra_to_rgba(bytes.as_slice())
+                    bgra_to_rgba(bytes)
                 }
-                PdfBitmapFormat::BGR => aligned_bgr_to_rgba(bytes.as_slice(), width, stride),
-                PdfBitmapFormat::Gray => bytes,
+                PdfBitmapFormat::BGR => aligned_bgr_to_rgba(bytes, width, stride),
+                PdfBitmapFormat::Gray => bytes.to_vec(),
             }
         }
     }
@@ -345,7 +350,7 @@ impl<'a> PdfBitmap<'a> {
     #[cfg(any(doc, target_arch = "wasm32"))]
     #[inline]
     pub fn as_array(&self) -> Uint8Array {
-        self.bindings.FPDFBitmap_GetBuffer_as_array(self.handle)
+        self.bindings.FPDFBitmap_GetArray(self.handle)
     }
 
     /// Returns a new Javascript `ImageData` object created from the bitmap buffer backing

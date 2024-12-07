@@ -62,7 +62,7 @@ mod bindgen {
     #[cfg(feature = "pdfium_5961")]
     include!("bindgen/pdfium_5961.rs");
 
-    pub(crate) type size_t = usize;
+    pub type size_t = usize;
 }
 
 mod bindings;
