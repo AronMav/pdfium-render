@@ -92,9 +92,13 @@ impl PdfiumLibraryBindings for StaticPdfiumBindings {
     #[inline]
     #[allow(non_snake_case)]
     fn FPDF_SetPrintMode(&self, mode: c_int) {
+        #[cfg(not(feature = "pdfium_7350"))]
         unsafe {
             crate::bindgen::FPDF_SetPrintMode(mode);
         }
+        // FPDF_SetPrintMode removed in PDFium 7350+, now a no-op
+        #[cfg(feature = "pdfium_7350")]
+        let _ = mode;
     }
 
     #[inline]
@@ -1582,7 +1586,7 @@ impl PdfiumLibraryBindings for StaticPdfiumBindings {
         unsafe { crate::bindgen::FPDFBitmap_Destroy(bitmap) }
     }
 
-    #[cfg(feature = "pdfium_use_win32")]
+    #[cfg(all(feature = "pdfium_use_win32", not(feature = "pdfium_7350")))]
     #[inline]
     #[allow(non_snake_case)]
     fn FPDF_RenderPage(

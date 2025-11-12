@@ -3266,9 +3266,10 @@ pub trait PdfiumLibraryBindings {
     fn FPDFBitmap_Destroy(&self, bitmap: FPDF_BITMAP);
 
     #[cfg(not(target_arch = "wasm32"))]
-    #[cfg(feature = "pdfium_use_win32")]
+    #[cfg(all(feature = "pdfium_use_win32", not(feature = "pdfium_7350")))]
     /// Renders the contents of a page to a device (screen, bitmap, or printer).
-    /// This function is only supported on Windows.
+    /// This function is only supported on Windows and removed in PDFium 7350+.
+    /// Use FPDF_RenderPageBitmap instead.
     ///
     ///    `dc`          -   Handle to the device context.
     ///
@@ -3302,9 +3303,10 @@ pub trait PdfiumLibraryBindings {
         flags: c_int,
     );
 
-    #[cfg(doc)]
+    #[cfg(all(doc, not(feature = "pdfium_7350")))]
     /// Renders the contents of a page to a device (screen, bitmap, or printer).
-    /// This function is only supported on Windows.
+    /// This function is only supported on Windows and removed in PDFium 7350+.
+    /// Use FPDF_RenderPageBitmap instead.
     ///
     ///    `dc`          -   Handle to the device context.
     ///

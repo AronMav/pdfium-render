@@ -800,7 +800,7 @@ pub(crate) struct DynamicPdfiumBindings {
         stride: c_int,
     ) -> FPDF_BITMAP,
     extern_FPDFBitmap_Destroy: unsafe extern "C" fn(bitmap: FPDF_BITMAP),
-    #[cfg(feature = "pdfium_use_win32")]
+    #[cfg(all(feature = "pdfium_use_win32", not(feature = "pdfium_7350")))]
     extern_FPDF_RenderPage: unsafe extern "C" fn(
         dc: windows::Win32::Graphics::Gdi::HDC,
         page: FPDF_PAGE,
@@ -2770,7 +2770,7 @@ impl DynamicPdfiumBindings {
             extern_FPDFBitmap_Create: *(Self::bind(&library, "FPDFBitmap_Create")?),
             extern_FPDFBitmap_CreateEx: *(Self::bind(&library, "FPDFBitmap_CreateEx")?),
             extern_FPDFBitmap_Destroy: *(Self::bind(&library, "FPDFBitmap_Destroy")?),
-            #[cfg(feature = "pdfium_use_win32")]
+            #[cfg(all(feature = "pdfium_use_win32", not(feature = "pdfium_7350")))]
             extern_FPDF_RenderPage: *(Self::bind(&library, "FPDF_RenderPage")?),
             extern_FPDFBitmap_GetFormat: *(Self::bind(&library, "FPDFBitmap_GetFormat")?),
             extern_FPDFBitmap_FillRect: *(Self::bind(&library, "FPDFBitmap_FillRect")?),
@@ -5231,7 +5231,7 @@ impl PdfiumLibraryBindings for DynamicPdfiumBindings {
         unsafe { (self.extern_FPDFBitmap_Destroy)(bitmap) }
     }
 
-    #[cfg(feature = "pdfium_use_win32")]
+    #[cfg(all(feature = "pdfium_use_win32", not(feature = "pdfium_7350")))]
     #[allow(non_snake_case)]
     fn FPDF_RenderPage(
         &self,

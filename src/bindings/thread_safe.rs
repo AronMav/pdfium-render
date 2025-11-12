@@ -1601,7 +1601,7 @@ impl<T: PdfiumLibraryBindings> PdfiumLibraryBindings for ThreadSafePdfiumBinding
         self.bindings.FPDFBitmap_Destroy(bitmap)
     }
 
-    #[cfg(feature = "pdfium_use_win32")]
+    #[cfg(all(feature = "pdfium_use_win32", not(feature = "pdfium_7350")))]
     #[inline]
     #[allow(non_snake_case)]
     fn FPDF_RenderPage(
